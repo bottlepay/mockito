@@ -38,16 +38,7 @@ class MockSpec<T> {
 
   final bool returnNullOnMissingStub;
 
-  final Set<Symbol> unsupportedMembers;
-
-  final Map<Symbol, Function> fallbackGenerators;
-
-  const MockSpec({
-    Symbol as,
-    this.returnNullOnMissingStub = false,
-    this.unsupportedMembers = const {},
-    this.fallbackGenerators = const {},
-  })
+  const MockSpec({Symbol as, this.returnNullOnMissingStub = false})
       : mockName = as;
 }
 '''
@@ -479,8 +470,8 @@ void main() {
       '''),
       },
       message: contains(
-          "Mockito cannot generate a valid override for method 'Foo.m'; "
-          "parameter 'a' causes a problem: default value has a private type: "
+          "Mockito cannot generate a valid stub for method 'Foo.m'; parameter "
+          "'a' causes a problem: default value has a private type: "
           'asset:foo/lib/foo.dart#_Bar'),
     );
   });
@@ -502,8 +493,8 @@ void main() {
         '''),
       },
       message: contains(
-          "Mockito cannot generate a valid override for method 'Foo.m'; "
-          "parameter 'a' causes a problem: default value has a private type: "
+          "Mockito cannot generate a valid stub for method 'Foo.m'; parameter "
+          "'a' causes a problem: default value has a private type: "
           'asset:foo/lib/foo.dart#Bar::_named'),
     );
   });
@@ -519,9 +510,9 @@ void main() {
         }
         '''),
       },
-      message: contains('Mockito cannot generate a valid override for method '
-          "'Foo.m'; parameter 'a' causes a problem: default value is a Type: "
-          'int'),
+      message: contains(
+          "Mockito cannot generate a valid stub for method 'Foo.m'; parameter "
+          "'a' causes a problem: default value is a Type: int"),
     );
   });
 
@@ -1297,127 +1288,6 @@ void main() {
         '''),
       _containsAllOf(
           'void m(int? a, T? b) => super.noSuchMethod(Invocation.method(#m, [a, b])'),
-    );
-  });
-
-  test('widens the type of covariant parameters to be nullable', () async {
-    await expectSingleNonNullableOutput(
-      dedent('''
-        abstract class FooBase {
-          void m(num a);
-        }
-        abstract class Foo extends FooBase {
-          void m(covariant int a);
-        }
-        '''),
-      _containsAllOf(
-          'void m(num? a) => super.noSuchMethod(Invocation.method(#m, [a])'),
-    );
-  });
-
-  test(
-      'widens the type of covariant parameters with default values to be nullable',
-      () async {
-    await expectSingleNonNullableOutput(
-      dedent('''
-        abstract class FooBase {
-          void m([num a = 0]);
-        }
-        abstract class Foo extends FooBase {
-          void m([covariant int a = 0]);
-        }
-        '''),
-      _containsAllOf(
-          'void m([num? a = 0]) => super.noSuchMethod(Invocation.method(#m, [a])'),
-    );
-  });
-
-  test(
-      'widens the type of covariant parameters (declared covariant in a '
-      'superclass) to be nullable', () async {
-    await expectSingleNonNullableOutput(
-      dedent('''
-        abstract class FooBase {
-          void m(covariant num a);
-        }
-        abstract class Foo extends FooBase {
-          void m(int a);
-        }
-        '''),
-      _containsAllOf(
-          'void m(num? a) => super.noSuchMethod(Invocation.method(#m, [a])'),
-    );
-  });
-
-  test('widens the type of successively covariant parameters to be nullable',
-      () async {
-    await expectSingleNonNullableOutput(
-      dedent('''
-        abstract class FooBaseBase {
-          void m(Object a);
-        }
-        abstract class FooBase extends FooBaseBase {
-          void m(covariant num a);
-        }
-        abstract class Foo extends FooBase {
-          void m(covariant int a);
-        }
-        '''),
-      _containsAllOf(
-          'void m(Object? a) => super.noSuchMethod(Invocation.method(#m, [a])'),
-    );
-  });
-
-  test(
-      'widens the type of covariant parameters, overriding a mixin, to be nullable',
-      () async {
-    await expectSingleNonNullableOutput(
-      dedent('''
-        mixin FooMixin {
-          void m(num a);
-        }
-        abstract class Foo with FooMixin {
-          void m(covariant int a);
-        }
-        '''),
-      _containsAllOf(
-          'void m(num? a) => super.noSuchMethod(Invocation.method(#m, [a])'),
-    );
-  });
-
-  test(
-      "widens the type of covariant parameters, which don't have corresponding "
-      'parameters in all overridden methods, to be nullable', () async {
-    await expectSingleNonNullableOutput(
-      dedent('''
-        abstract class FooBaseBase {
-          void m();
-        }
-        abstract class FooBase extends FooBaseBase {
-          void m([num a]);
-        }
-        abstract class Foo extends FooBase {
-          void m([covariant int a]);
-        }
-        '''),
-      _containsAllOf(
-          'void m([num? a]) => super.noSuchMethod(Invocation.method(#m, [a])'),
-    );
-  });
-
-  test('widens the type of covariant named parameters to be nullable',
-      () async {
-    await expectSingleNonNullableOutput(
-      dedent('''
-        abstract class FooBase extends FooBaseBase {
-          void m({required num a});
-        }
-        abstract class Foo extends FooBase {
-          void m({required covariant int a});
-        }
-        '''),
-      _containsAllOf(
-          'void m({num? a}) => super.noSuchMethod(Invocation.method(#m, [], {#a: a})'),
     );
   });
 
@@ -2827,25 +2697,6 @@ void main() {
   });
 
   test(
-      'throws when GenerateMocks is given a class with a getter with a '
-      'non-nullable class-declared type variable type', () async {
-    _expectBuilderThrows(
-      assets: {
-        ...annotationsAsset,
-        ...simpleTestAsset,
-        'foo|lib/foo.dart': dedent('''
-        abstract class Foo<T> {
-          T get f;
-        }
-        '''),
-      },
-      message: contains(
-          "The property accessor 'Foo.f' features a non-nullable unknown "
-          'return type, and cannot be stubbed'),
-    );
-  });
-
-  test(
       'throws when GenerateMocks is given a class with a method with a '
       'non-nullable class-declared type variable return type', () async {
     _expectBuilderThrows(
@@ -3087,22 +2938,6 @@ void main() {
     );
   });
 
-  test('given a pre-non-nullable library, includes an opt-out comment',
-      () async {
-    await testPreNonNullable(
-      {
-        ...annotationsAsset,
-        ...simpleTestAsset,
-        'foo|lib/foo.dart': dedent(r'''
-        abstract class Foo {
-          int f(int a);
-        }
-        '''),
-      },
-      outputs: {'foo|test/foo_test.mocks.dart': _containsAllOf('// @dart=2.9')},
-    );
-  });
-
   test('given a pre-non-nullable library, does not override any members',
       () async {
     await testPreNonNullable(
@@ -3123,25 +2958,6 @@ void main() {
           }
         }
         '''))
-      },
-    );
-  });
-
-  test('given a pre-non-nullable library, overrides toString if necessary',
-      () async {
-    await testPreNonNullable(
-      {
-        ...annotationsAsset,
-        ...simpleTestAsset,
-        'foo|lib/foo.dart': dedent(r'''
-        abstract class Foo {
-          String toString({bool a = false});
-        }
-        '''),
-      },
-      outputs: {
-        'foo|test/foo_test.mocks.dart': _containsAllOf(
-            'String toString({bool a = false}) => super.toString();')
       },
     );
   });

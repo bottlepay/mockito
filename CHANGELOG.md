@@ -1,20 +1,3 @@
-## 5.1.0
-
-* In creating mocks for a pre-null-safe library, opt out of null safety in the
-  generated code.
-* Properly generate method overrides for methods with covariant parameters.
-  [#506](https://github.com/dart-lang/mockito/issues/506)
-* Correctly generate a `toString` override method for pre-null safe libraries,
-  for which the class-to-mock implements `toString` with additional parameters.
-* Improve messaging in a MissingStubError, directing to the docs for MockSpec.
-* Fix incorrect error when trying to mock a method with a parameter with inner
-  function types (like in type arguments) which are potentially non-nullable.
-  [#476](https://github.com/dart-lang/mockito/issues/476)
-* Allow fallback generators to be applied for getters.
-* Support generating a mock class for a class with members with non-nullable
-  unknown return types via a new parameter on `MockSpec` called
-  `unsupportedMembers`. See [NULL_SAFETY_README][] for details.
-
 ## 5.0.17
 
 * Report when a class cannot be mocked because an inherited method or property

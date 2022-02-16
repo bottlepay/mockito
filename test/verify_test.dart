@@ -184,8 +184,7 @@ void main() {
     });
 
     test('should throw meaningful errors when verification is interrupted', () {
-      int badHelper() => throw 'boo';
-
+      var badHelper = () => throw 'boo';
       try {
         verify(mock.methodWithNamedArgs(42, y: badHelper()));
       } catch (_) {}

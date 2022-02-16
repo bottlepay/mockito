@@ -48,7 +48,7 @@ class _RealClassController {
     streamController.stream.listen(_callAllMethods);
   }
 
-  Future<void> _callAllMethods(_) async {
+  Future<Null> _callAllMethods(_) async {
     _realClass
       ..methodWithoutArgs()
       ..methodWithNormalArgs(1)

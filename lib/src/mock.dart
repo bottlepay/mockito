@@ -12,11 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The API in this file includes functions that return `void`, but are intended
-// to be passed as arguments to method stubs, so they must be declared to return
-// `Null` in order to not trigger `use_of_void_result` warnings in user code.
-// ignore_for_file: prefer_void_to_null
-
 import 'dart:async';
 
 import 'package:meta/meta.dart';
@@ -26,6 +21,10 @@ import 'package:mockito/src/invocation_matcher.dart';
 import 'package:test_api/fake.dart';
 // ignore: deprecated_member_use
 import 'package:test_api/test_api.dart';
+// TODO(srawlins): Remove this when we no longer need to check for an
+// incompatiblity between test_api and test.
+// https://github.com/dart-lang/mockito/issues/175
+import 'package:test_api/src/backend/invoker.dart';
 
 /// Whether a [when] call is "in progress."
 ///
@@ -232,9 +231,7 @@ class MissingStubError extends Error {
       'No stub was found which matches the arguments of this method call:\n'
       '${invocation.toPrettyString()}\n\n'
       "Add a stub for this method using Mockito's 'when' API, or generate the "
-      '${receiver.runtimeType} mock with a MockSpec with '
-      "'returnNullOnMissingStub: true' (see "
-      'https://pub.dev/documentation/mockito/latest/annotations/MockSpec-class.html).';
+      "mock for ${receiver.runtimeType} with 'returnNullOnMissingStub: true'.";
 }
 
 typedef _ReturnsCannedResponse = CallPair<dynamic> Function();
@@ -838,6 +835,9 @@ class VerificationResult {
   ///
   /// Named arguments are listed in the order they are captured in, not the
   /// order in which they were passed.
+  // TODO(https://github.com/dart-lang/linter/issues/1992): Remove ignore
+  // comments below when google3 has linter with this bug fixed.
+  // ignore: unnecessary_getters_setters
   List<dynamic> get captured => _captured;
 
   @Deprecated(
@@ -853,6 +853,41 @@ class VerificationResult {
 
   VerificationResult._(this.callCount, this._captured);
 
+  /// Check for a version incompatibility between mockito, test, and test_api.
+  ///
+  /// This incompatibility results in an inscrutible error for users. Catching
+  /// it here allows us to give some steps to fix.
+  // TODO(srawlins): Remove this when we don't need to check for an
+  // incompatiblity between test_api and test any more.
+  // https://github.com/dart-lang/mockito/issues/175
+  void _checkTestApiMismatch() {
+    try {
+      Invoker.current;
+    } on CastError catch (e) {
+      if (!e
+          .toString()
+          .contains("type 'Invoker' is not a subtype of type 'Invoker'")) {
+        // Hmm. This is a different CastError from the one we're trying to
+        // protect against. Let it go.
+        return;
+      }
+      print('Error: Package incompatibility between mockito, test, and '
+          'test_api packages:');
+      print('');
+      print('* mockito ^4.0.0 is incompatible with test <1.4.0');
+      print('* mockito <4.0.0 is incompatible with test ^1.4.0');
+      print('');
+      print('As mockito does not have a dependency on the test package, '
+          'nothing stopped you from landing in this situation. :( '
+          'Apologies.');
+      print('');
+      print('To fix: bump your dependency on the test package to something '
+          'like: ^1.4.0, or downgrade your dependency on mockito to something '
+          'like: ^3.0.0');
+      rethrow;
+    }
+  }
+
   /// Assert that the number of calls matches [matcher].
   ///
   /// Examples:
@@ -867,6 +902,7 @@ class VerificationResult {
       // Only execute the check below once. `Invoker.current` may look like a
       // cheap getter, but it involves Zones and casting.
       _testApiMismatchHasBeenChecked = true;
+      _checkTestApiMismatch();
     }
     expect(callCount, wrapMatcher(matcher),
         reason: 'Unexpected number of calls');

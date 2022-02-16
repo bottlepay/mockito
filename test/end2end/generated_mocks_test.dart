@@ -6,15 +6,11 @@ import 'foo.dart';
 import 'foo_sub.dart';
 import 'generated_mocks_test.mocks.dart';
 
-T returnsTypeVariableShim<T>() => [1, 1.5].whereType<T>().first!;
+T dummyMethod<T>() => [1, 1.5].whereType<T>().first!;
 
-T returnsBoundedTypeVariableShim<T extends num?>() =>
-    [1, 1.5].whereType<T>().first!;
+T dummyBoundedMethod<T extends num?>() => [1, 1.5].whereType<T>().first!;
 
-T returnsTypeVariableFromTwoShim<T, U>() => [1, 1.5].whereType<T>().first!;
-
-T typeVariableFieldShim<T>() =>
-    throw UnsupportedError('typeVariableField cannot be used');
+T dummyMethodTwo<T, U>() => [1, 1.5].whereType<T>().first!;
 
 @GenerateMocks([
   Foo,
@@ -23,17 +19,10 @@ T typeVariableFieldShim<T>() =>
 ], customMocks: [
   MockSpec<Foo>(as: #MockFooRelaxed, returnNullOnMissingStub: true),
   MockSpec<Bar>(as: #MockBarRelaxed, returnNullOnMissingStub: true),
-  MockSpec<Baz>(as: #MockBazWithUnsupportedMembers, unsupportedMembers: {
-    #returnsTypeVariable,
-    #returnsBoundedTypeVariable,
-    #returnsTypeVariableFromTwo,
-    #typeVariableField,
-  }),
-  MockSpec<Baz>(as: #MockBazWithFallbackGenerators, fallbackGenerators: {
-    #returnsTypeVariable: returnsTypeVariableShim,
-    #returnsBoundedTypeVariable: returnsBoundedTypeVariableShim,
-    #returnsTypeVariableFromTwo: returnsTypeVariableFromTwoShim,
-    #typeVariableField: typeVariableFieldShim,
+  MockSpec<Baz>(as: #MockBaz, fallbackGenerators: {
+    #returnsTypeVariable: dummyMethod,
+    #returnsBoundedTypeVariable: dummyBoundedMethod,
+    #returnsTypeVariableFromTwo: dummyMethodTwo,
   }),
 ])
 void main() {
@@ -168,27 +157,11 @@ void main() {
     });
   });
 
-  group('for a generated mock using unsupportedMembers', () {
-    late Baz baz;
-
-    setUp(() {
-      baz = MockBazWithUnsupportedMembers();
-    });
-
-    test('a real method call throws', () {
-      expect(() => baz.returnsTypeVariable(), throwsUnsupportedError);
-    });
-
-    test('a real getter call (or field access) throws', () {
-      expect(() => baz.typeVariableField, throwsUnsupportedError);
-    });
-  });
-
   group('for a generated mock using fallbackGenerators,', () {
     late Baz baz;
 
     setUp(() {
-      baz = MockBazWithFallbackGenerators();
+      baz = MockBaz();
     });
 
     test('a method with a type variable return type can be called', () {

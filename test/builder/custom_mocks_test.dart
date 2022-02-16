@@ -37,15 +37,15 @@ class MockSpec<T> {
 
   final bool returnNullOnMissingStub;
 
-  final Set<Symbol> unsupportedMembers;
-
   final Map<Symbol, Function> fallbackGenerators;
+
+  final bool isInjectableMock;
 
   const MockSpec({
     Symbol? as,
     this.returnNullOnMissingStub = false,
-    this.unsupportedMembers = const {},
     this.fallbackGenerators = const {},
+    this.isInjectableMock = false,
   }) : mockName = as;
 }
 '''
@@ -116,7 +116,7 @@ void main() {
       'foo|test/foo_test.dart': '''
         import 'package:foo/foo.dart';
         import 'package:mockito/annotations.dart';
-        @GenerateMocks([], customMocks: [MockSpec<Foo>(as: #MockFoo)])
+        @GenerateMocks([], customMocks: [MockSpec<Foo>(as: #MockFoo, isInjectableMock: false)])
         void main() {}
         '''
     });
@@ -329,69 +329,6 @@ void main() {
   });
 
   test(
-      'generates mock methods with non-nullable unknown types, given '
-      'unsupportedMembers', () async {
-    var mocksContent = await buildWithNonNullable({
-      ...annotationsAsset,
-      'foo|lib/foo.dart': dedent(r'''
-        abstract class Foo {
-          T m<T>(T a);
-        }
-        '''),
-      'foo|test/foo_test.dart': '''
-        import 'package:foo/foo.dart';
-        import 'package:mockito/annotations.dart';
-
-        @GenerateMocks(
-          [],
-          customMocks: [
-            MockSpec<Foo>(unsupportedMembers: {#m}),
-          ],
-        )
-        void main() {}
-        '''
-    });
-    expect(
-        mocksContent,
-        contains('  T m<T>(T? a) => throw UnsupportedError(\n'
-            r"      '\'m\' cannot be used without a mockito fallback generator.');"));
-  });
-
-  test('generates mock classes including a fallback generator for a getter',
-      () async {
-    var mocksContent = await buildWithNonNullable({
-      ...annotationsAsset,
-      'foo|lib/foo.dart': dedent(r'''
-        abstract class Foo<T> {
-          T get f;
-        }
-        '''),
-      'foo|test/foo_test.dart': '''
-        import 'package:foo/foo.dart';
-        import 'package:mockito/annotations.dart';
-
-        T fShim<T>() {
-          throw 'unknown';
-        }
-
-        @GenerateMocks(
-          [],
-          customMocks: [
-            MockSpec<Foo>(fallbackGenerators: {#f: fShim}),
-          ],
-        )
-        void main() {}
-        '''
-    });
-    expect(
-      mocksContent,
-      contains('T get f =>\n'
-          '      (super.noSuchMethod(Invocation.getter(#f), returnValue: _i3.fShim())\n'
-          '          as T);'),
-    );
-  });
-
-  test(
       'generates mock classes including a fallback generator for a generic '
       'method with positional parameters', () async {
     var mocksContent = await buildWithNonNullable({
@@ -600,41 +537,6 @@ void main() {
     expect(
         mocksContent,
         contains('T m<T extends num>({T? a}) =>\n'
-            '      (super.noSuchMethod(Invocation.method(#m, [], {#a: a}),\n'
-            '          returnValue: _i3.mShim<T>(a: a)) as T);'));
-  });
-
-  test(
-      'generates mock classes including a fallback generator for a generic '
-      'method with a parameter with a function-typed type argument with '
-      'unknown return type', () async {
-    var mocksContent = await buildWithNonNullable({
-      ...annotationsAsset,
-      'foo|lib/foo.dart': dedent('''
-        abstract class Foo {
-          T m<T>({List<T Function()> a});
-        }
-        '''),
-      'foo|test/foo_test.dart': dedent('''
-        import 'package:foo/foo.dart';
-        import 'package:mockito/annotations.dart';
-
-        T mShim<T>({List<T Function()> a}) {
-          throw 'unknown';
-        }
-
-        @GenerateMocks(
-          [],
-          customMocks: [
-            MockSpec<Foo>(as: #MockFoo, fallbackGenerators: {#m: mShim}),
-          ],
-        )
-        void main() {}
-        ''')
-    });
-    expect(
-        mocksContent,
-        contains('T m<T>({List<T Function()>? a}) =>\n'
             '      (super.noSuchMethod(Invocation.method(#m, [], {#a: a}),\n'
             '          returnValue: _i3.mShim<T>(a: a)) as T);'));
   });
