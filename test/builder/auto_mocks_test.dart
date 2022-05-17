@@ -799,6 +799,40 @@ void main() {
     );
   });
 
+  test('generates mock classes from an annotation on an import directive',
+      () async {
+    var mocksOutput = await buildWithNonNullable({
+      ...annotationsAsset,
+      'foo|lib/foo.dart': dedent(r'class Foo {} class Bar {}'),
+      'foo|test/foo_test.dart': '''
+        @GenerateMocks([Foo])
+        import 'package:foo/foo.dart';
+        import 'package:mockito/annotations.dart';
+        '''
+    });
+    expect(mocksOutput,
+        contains('class MockFoo extends _i1.Mock implements _i2.Foo'));
+  });
+
+  test('generates mock classes from an annotation on an export directive',
+      () async {
+    var mocksOutput = await buildWithNonNullable({
+      ...annotationsAsset,
+      'foo|lib/foo.dart': dedent(r'''
+        class Foo {}
+        class Bar {}
+        '''),
+      'foo|test/foo_test.dart': '''
+        @GenerateMocks([Foo])
+        export 'dart:core';
+        import 'package:foo/foo.dart';
+        import 'package:mockito/annotations.dart';
+        '''
+    });
+    expect(mocksOutput,
+        contains('class MockFoo extends _i1.Mock implements _i2.Foo'));
+  });
+
   test('generates multiple mock classes', () async {
     var mocksOutput = await buildWithNonNullable({
       ...annotationsAsset,
@@ -1312,6 +1346,22 @@ void main() {
         }
         '''),
       _containsAllOf('void m(int? Function()? a, int Function()? b) =>'),
+    );
+  });
+
+  test(
+      'matches nullability of return type of FutureOr<T> for potentially nullable T',
+      () async {
+    await expectSingleNonNullableOutput(
+      dedent(r'''
+        import 'dart:async';
+        abstract class Foo {
+          FutureOr<R> m<R>();
+        }
+        '''),
+      _containsAllOf(
+          '_i3.FutureOr<R> m<R>() => (super.noSuchMethod(Invocation.method(#m, []),',
+          '      returnValue: Future<R>.value(null)) as _i3.FutureOr<R>);'),
     );
   });
 

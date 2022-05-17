@@ -16,6 +16,7 @@ import 'dart:collection';
 
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart' as analyzer;
 import 'package:analyzer/dart/element/type_provider.dart';
 import 'package:analyzer/dart/element/type_system.dart';
@@ -390,14 +391,19 @@ class _MockTargetGatherer {
   ) {
     final mockTargets = <_MockTarget>{};
 
-    for (final element in entryLib.topLevelElements) {
+    final possiblyAnnotatedElements = [
+      ...entryLib.exports,
+      ...entryLib.imports,
+      ...entryLib.topLevelElements,
+    ];
+
+    for (final element in possiblyAnnotatedElements) {
       // TODO(srawlins): Re-think the idea of multiple @GenerateMocks
       // annotations, on one element or even on different elements in a library.
       for (final annotation in element.metadata) {
         if (annotation == null) continue;
         if (annotation.element is! ConstructorElement) continue;
         final annotationClass = annotation.element!.enclosingElement!.name;
-        // TODO(srawlins): check library as well.
         if (annotationClass == 'GenerateMocks') {
           mockTargets
               .addAll(_mockTargetsFromGenerateMocks(annotation, entryLib));
@@ -1458,7 +1464,8 @@ class _MockClassInfo {
       return TypeReference((b) {
         b
           ..symbol = type.element.name
-          ..isNullable = forceNullable || typeSystem.isPotentiallyNullable(type)
+          ..isNullable = forceNullable ||
+              type.nullabilitySuffix == NullabilitySuffix.question
           ..url = _typeImport(type.element)
           ..types.addAll(type.typeArguments.map(_typeReference));
       });

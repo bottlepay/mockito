@@ -79,9 +79,21 @@ class MockSpec<T> {
   ///
   /// Specify a custom name with the [as] parameter.
   ///
-  /// If [returnNullOnMissingStub] is true, the mock class will return `null`
-  /// when a method is called and no stub could be found. This may result in a
-  /// runtime error, if the return type of the method is non-nullable.
+  /// If [returnNullOnMissingStub] is true, a real call to a mock method will
+  /// return `null` when no stub is found. This may result in a runtime error,
+  /// if the return type of the method is non-nullable.
+  ///
+  /// If the class-to-mock has a member with a non-nullable unknown return type
+  /// (such as a type variable, `T`), then mockito cannot generate a valid
+  /// override member, unless the member is specified in [unsupportedMembers],
+  /// or a fallback implementation is given in [fallbackGenerators].
+  ///
+  /// For each member M in [unsupportedMembers], the mock class will have an
+  /// override that throws, which may be useful if the return type T of M is
+  /// non-nullable and it's inconvenient to define a fallback generator for M,
+  /// e.g. if T is an unknown type variable. Such an override cannot be used
+  /// with the mockito stubbing and verification APIs, but makes the mock class
+  /// a valid implementation of the class-to-mock.
   ///
   /// Each entry in [fallbackGenerators] specifies a mapping from a method name
   /// to a function, with the same signature as the method. This function will
